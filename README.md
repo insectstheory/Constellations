@@ -1,5 +1,5 @@
 # Constellations
-A generative MIDI sequencer for Monome Norns based on a geometric point system. Inspired by the dynamics of the night sky, Constellations explores movement to trigger external synths, creating evolving ambient and cinematic textures.
+A generative MIDI sequencer for Monome Norns based on a geometric point system. Inspired by the dynamics of the night sky, Constellations explores movement to trigger external synths.
 # constellations
 
 A generative MIDI sequencer for norns. A set of points drifts continuously across the screen, each one bouncing off the edges. Whenever two points come close enough to connect, a line appears between them and a MIDI note fires — its pitch determined by the horizontal position of the pair, its velocity by their vertical position and distance. As the geometry shifts, the music shifts with it: dense clusters produce rapid polyphonic bursts, sparse configurations let single notes ring out in silence.
