@@ -1,19 +1,19 @@
 -- Constellations
 -- Geometric point System 
 -- Insects Theory 2026
---
 -- E1: Speed
 -- E2: Points
 -- E3: Max dixtance trig
 -- K2: Regen
 
+
 local points       = {}
 local max_points   = 12
-local global_speed = 0.6   -- internal range 0.05 – 3.0
+local global_speed = 0.6   
 local max_distance = 25
-local active_notes   = {}    -- key "i_j" → {note, channel}
-local flash_frames   = {}    -- point index → remaining flash frames
-local showing_splash = true  -- true while the splash screen is displayed
+local active_notes   = {}    
+local flash_frames   = {}    
+local showing_splash = true  
 
 local midi_out     = nil
 
@@ -31,9 +31,6 @@ local SCALES = {
   { name = "dorian",     intervals = {0,2,3,5,7,9,10} },
 }
 
--- -----------------------------------------------------------------
--- Helpers
--- -----------------------------------------------------------------
 
 local function midi_panic()
   for k, data in pairs(active_notes) do
@@ -52,7 +49,7 @@ local function x_to_note(x)
   local degree = math.floor(util.linlin(0, 128, 0, #scale * 4, x))
   local octave = math.floor(degree / #scale)
   local step   = degree % #scale + 1
-  -- clamp to avoid MIDI notes outside the 0-127 range
+  
   return util.clamp(root + octave * 12 + scale[step], 0, 127)
 end
 
@@ -68,16 +65,13 @@ end
 local function pair_channel(i, j)
   local ch = params:get("midi_channel")
   if ch == 0 then
-    -- multi-channel mode: distribute across channels 1-4
+  
     return ((i + j) % 4) + 1
   else
     return ch
   end
 end
 
--- -----------------------------------------------------------------
--- Points
--- -----------------------------------------------------------------
 
 local function init_point()
   return {
@@ -88,14 +82,12 @@ local function init_point()
   }
 end
 
--- -----------------------------------------------------------------
--- Splash screen
--- -----------------------------------------------------------------
+
 
 local function draw_splash()
   screen.clear()
 
-  -- Connection lines (coordinates scaled to 128x64)
+
   local function line(x1,y1,x2,y2,lv)
     screen.level(lv)
     screen.move(x1,y1)
@@ -118,7 +110,7 @@ local function draw_splash()
   line(113, 12, 118, 26, 3)
   line(118, 26, 108, 32, 3)
 
-  -- Nodes
+ 
   local nodes = {
     {20,14,2},{38,21,2},{57,16,1},{76,26,2},
     {99,20,1},{108,32,2},{89,40,1},{51,38,1},
@@ -130,12 +122,12 @@ local function draw_splash()
     screen.fill()
   end
 
-  -- Trigger ring on the central node
+  
   screen.level(8)
   screen.circle(76, 26, 4)
   screen.stroke()
 
-  -- Script name
+  
   screen.level(15)
   screen.font_face(1)
   screen.font_size(8)
@@ -145,9 +137,7 @@ local function draw_splash()
   screen.update()
 end
 
--- -----------------------------------------------------------------
--- Init
--- -----------------------------------------------------------------
+
 
 function init()
   params:add_separator("MIDI")
@@ -207,14 +197,14 @@ function init()
     id      = "node_flash",
     name    = "node flash on trigger",
     options = {"off", "on"},
-    default = 1   -- off by default
+    default = 1   
   }
 
   midi_out = midi.connect(params:get("midi_device"))
 
   screen.aa(0)
 
-  -- Show splash for 2.5 seconds, then start the sequencer
+  
   draw_splash()
   clock.run(function()
     clock.sleep(2.5)
@@ -234,25 +224,21 @@ function init()
   m:start()
 end
 
--- -----------------------------------------------------------------
--- Update
--- -----------------------------------------------------------------
+
 
 function update_points()
   if showing_splash then return end
 
-  -- Sync point count (add)
+  
   while #points < max_points do
     table.insert(points, init_point())
   end
 
-  -- Sync point count (remove)
-  -- close active notes involving the points being removed,
-  -- then remove points one at a time from the end
+ 
   while #points > max_points do
     local n = #points
     for k, data in pairs(active_notes) do
-      -- extract both indices from the key string
+     
       local si, sj = k:match("^(%d+)_(%d+)$")
       local pi, pj = tonumber(si), tonumber(sj)
       if pi == n or pj == n then
@@ -263,7 +249,7 @@ function update_points()
     table.remove(points)
   end
 
-  -- Move points
+  
   for _, p in ipairs(points) do
     p.x = p.x + p.dx * global_speed
     p.y = p.y + p.dy * global_speed
@@ -273,7 +259,7 @@ function update_points()
     p.y = util.clamp(p.y, 0, 64)
   end
 
-  -- Check connections → note on/off
+  
   for i = 1, #points do
     for j = i + 1, #points do
       local k   = i .. "_" .. j
@@ -291,7 +277,7 @@ function update_points()
           midi_out:note_on(note, vel, ch)
           active_notes[k] = { note = note, channel = ch }
 
-          -- Flash both nodes (only if enabled in params)
+          
           if params:get("node_flash") == 2 then
             flash_frames[i] = 3
             flash_frames[j] = 3
@@ -300,8 +286,7 @@ function update_points()
           local gt = gate_time()
           clock.run(function()
             clock.sleep(gt)
-            -- check the note is still the one we launched,
-            -- to avoid a double note_off if the else branch already closed it
+           
             local entry = active_notes[k]
             if entry and entry.note == note and entry.channel == ch then
               midi_out:note_off(note, 0, ch)
@@ -319,13 +304,10 @@ function update_points()
   end
 end
 
--- -----------------------------------------------------------------
--- Encoders
--- -----------------------------------------------------------------
 
 function enc(n, d)
   if n == 1 then
-    -- fixed small step to avoid positive feedback (d * speed)
+   
     global_speed = util.clamp(global_speed + d * 0.02, 0.05, 3.0)
   elseif n == 2 then
     max_points = util.clamp(max_points + d, 2, 30)
@@ -334,9 +316,6 @@ function enc(n, d)
   end
 end
 
--- -----------------------------------------------------------------
--- Keys
--- -----------------------------------------------------------------
 
 function key(n, z)
   if n == 2 and z == 1 then
@@ -345,16 +324,14 @@ function key(n, z)
   end
 end
 
--- -----------------------------------------------------------------
--- Redraw
--- -----------------------------------------------------------------
+
 
 function redraw()
   if showing_splash then draw_splash() return end
 
   screen.clear()
 
-  -- Connection lines
+
   for i = 1, #points do
     for j = i + 1, #points do
       local p1   = points[i]
@@ -373,11 +350,11 @@ function redraw()
     end
   end
 
-  -- Nodes (with optional flash on trigger)
+  
   for idx, p in ipairs(points) do
     local f = flash_frames[idx] or 0
     if f > 0 then
-      -- enlarged circle during flash
+      
       screen.level(15)
       screen.circle(math.floor(p.x), math.floor(p.y), 2)
       screen.fill()
